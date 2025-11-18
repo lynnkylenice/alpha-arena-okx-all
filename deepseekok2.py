@@ -10,7 +10,7 @@ import json
 import requests
 from datetime import datetime, timedelta
 from data_manager import update_system_status, save_trade_record
-
+from ttm_strategy import ttm_squeeze
 load_dotenv()
 
 # 初始化DeepSeek客户端
@@ -429,6 +429,10 @@ def get_btc_ohlcv_enhanced():
         # 获取K线数据
         ohlcv = exchange.fetch_ohlcv(TRADE_CONFIG['symbol'], TRADE_CONFIG['timeframe'],
                                      limit=TRADE_CONFIG['data_points'])
+        # ohlfivecv = exchange.fetch_ohlcv(TRADE_CONFIG['symbol'], '5m',
+        #                              limit=TRADE_CONFIG['data_points'])
+        # ohlsixtycv = exchange.fetch_ohlcv(TRADE_CONFIG['symbol'], '1h',
+        #                              limit=TRADE_CONFIG['data_points'])
 
         df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
@@ -451,7 +455,7 @@ def get_btc_ohlcv_enhanced():
             'volume': current_data['volume'],
             'timeframe': TRADE_CONFIG['timeframe'],
             'price_change': ((current_data['close'] - previous_data['close']) / previous_data['close']) * 100,
-            'kline_data': df[['timestamp', 'open', 'high', 'low', 'close', 'volume']].tail(10).to_dict('records'),
+            'kline_data': df[['timestamp', 'open', 'high', 'low', 'close', 'volume']].tail(60).to_dict('records'),
             'technical_data': {
                 'sma_5': current_data.get('sma_5', 0),
                 'sma_20': current_data.get('sma_20', 0),
@@ -762,7 +766,7 @@ def analyze_with_deepseek(price_data):
 
     # 构建K线数据文本
     kline_text = f"【最近5根{TRADE_CONFIG['timeframe']}K线数据】\n"
-    for i, kline in enumerate(price_data['kline_data'][-5:]):
+    for i, kline in enumerate(price_data['kline_data'][-20:]):
         trend = "阳线" if kline['close'] > kline['open'] else "阴线"
         change = ((kline['close'] - kline['open']) / kline['open']) * 100
         kline_text += f"K线{i + 1}: {trend} 开盘:{kline['open']:.2f} 收盘:{kline['close']:.2f} 涨跌:{change:+.2f}%\n"
@@ -1122,6 +1126,7 @@ def execute_intelligent_trade(signal_data, price_data):
 
     current_position = get_current_position()
 
+
     # 防止频繁反转的逻辑保持不变
     if current_position and signal_data['signal'] != 'HOLD':
         current_side = current_position['side']  # 'long' 或 'short'
@@ -1432,7 +1437,7 @@ def wait_for_next_period():
     current_second = now.second
 
     # 计算下一个整点时间（00, 15, 30, 45分钟）
-    next_period_minute = ((current_minute // 15) + 1) * 15
+    next_period_minute = ((current_minute // 5) + 1) * 5
     if next_period_minute == 60:
         next_period_minute = 0
 
@@ -1455,6 +1460,36 @@ def wait_for_next_period():
 
     return seconds_to_wait
 
+def boll_kc_handel(price_data):
+   #  {
+   #     "signal": "HOLD",
+   #      "reason": "因技术分析暂时不可用，采取保守策略",
+   #      "stop_loss": price_data['price'] * 0.98,  # -2%
+   #     "take_profit": price_data['price'] * 1.02,  # +2%
+   #     "confidence": "LOW",
+   #     "is_fallback": True
+   # }
+    df=price_data['full_data']
+    res = ttm_squeeze(df)
+    rsi_last = df['rsi'].iloc[-2]
+    rsi_close = df['rsi'].iloc[-1]
+    if bool(res['Squeeze_On'].iloc[-1]) and rsi_last >= 80 > rsi_close and df['close'].iloc[-1] < df['open'].iloc[-1]:
+        signal = 'SELL'
+        reason='布林肯特钠通道超买'
+    elif bool(res['Squeeze_On'].iloc[-1]) and rsi_last <= 20 < rsi_close and df['close'].iloc[-1] > df['open'].iloc[-1]:
+        signal = 'BUY'
+        reason = '布林肯特钠通道超卖'
+    else:
+        signal = 'HOLD'
+        reason = '震荡行情'
+    return {
+        'signal':signal,
+        'reason':reason,
+        "stop_loss": price_data['price'] * 0.98,
+        "take_profit": price_data['price'] * 1.02,
+        "confidence": 'High',
+        "is_fallback": True
+    }
 
 def trading_bot():
     # 等待到整点再执行
@@ -1500,8 +1535,9 @@ def trading_bot():
         }
 
     # 4. 使用DeepSeek分析（带重试）
-    signal_data = analyze_with_deepseek_with_retry(price_data)
+    # signal_data = analyze_with_deepseek_with_retry(price_data)
 
+    signal_data = boll_kc_handel(price_data)
     if signal_data.get('is_fallback', False):
         print("⚠️ 使用备用交易信号")
 
