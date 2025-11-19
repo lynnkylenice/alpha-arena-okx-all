@@ -112,12 +112,13 @@ def nw_rsi_atr(price_data):
     nw = nwe_repaint_on_last(close, h=8, mult=3, window=window)
     atr = atr_stop_loss(df,14,0.5)
     rsi = df['rsi'].iloc[-1]
+    rsilast = df['rsi'].iloc[-2]
     reason = 'nw触发'
-    if price_high > nw['upper'].iloc[-1] > price_close and rsi>70 and price_close< nw['mid'].iloc[-1]:
+    if price_high > nw['upper'].iloc[-1] > price_close and (rsi>=70 or rsilast>=70) and price_close< nw['mid'].iloc[-1]:
         signal = 'SELL'
         stop_loss = df['close'].iloc[-1] + atr
         take_profit = df['upper'].iloc[-1] -nw['mae']
-    if price_low <= nw['lower'].iloc[-1] < price_close and rsi < 30 and price_close> nw['mid'].iloc[-1]:
+    if price_low <= nw['lower'].iloc[-1] < price_close and (rsi <= 30 or rsilast<=30) and price_close> nw['mid'].iloc[-1]:
         signal = 'BUY'
         stop_loss = df['close'].iloc[-1] - atr
         take_profit = df['lower'].iloc[-1] +nw['mae']
