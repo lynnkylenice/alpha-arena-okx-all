@@ -11,6 +11,7 @@ import requests
 from datetime import datetime, timedelta
 from data_manager import update_system_status, save_trade_record
 from ttm_strategy import ttm_squeeze
+from strategy import nw_rsi_atr
 load_dotenv()
 
 # 初始化DeepSeek客户端
@@ -33,7 +34,7 @@ exchange = ccxt.okx({
 TRADE_CONFIG = {
     'symbol': 'BTC/USDT:USDT',  # OKX的合约符号格式
     'leverage': 10,  # 杠杆倍数,只影响保证金不影响下单价值
-    'timeframe': '15m',  # 使用15分钟K线
+    'timeframe': '5m',  # 使用15分钟K线
     'test_mode': False,  # 测试模式
     'data_points': 96,  # 24小时数据（96根15分钟K线）
     'analysis_periods': {
@@ -45,9 +46,9 @@ TRADE_CONFIG = {
     'position_management': {
         'enable_intelligent_position': True,  # 🆕 新增：是否启用智能仓位管理
         'base_usdt_amount': 100,  # USDT投入下单基数
-        'high_confidence_multiplier': 1.5,
-        'medium_confidence_multiplier': 1.0,
-        'low_confidence_multiplier': 0.5,
+        'high_confidence_multiplier': 10,
+        'medium_confidence_multiplier': 2,
+        'low_confidence_multiplier': 1,
         'max_position_ratio': 50,  # 单次最大仓位比例
         'trend_strength_multiplier': 1.2
     }
@@ -1537,7 +1538,7 @@ def trading_bot():
     # 4. 使用DeepSeek分析（带重试）
     # signal_data = analyze_with_deepseek_with_retry(price_data)
 
-    signal_data = boll_kc_handel(price_data)
+    signal_data = nw_rsi_atr(price_data)
     if signal_data.get('is_fallback', False):
         print("⚠️ 使用备用交易信号")
 

@@ -4,7 +4,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from deepseekok2 import calculate_technical_indicators,deepseek_client,exchange,TRADE_CONFIG
-from ttm_strategy import ttm_squeeze
+from ttm_strategy import ttm_squeeze,squeeze_momentum
+from nw import nw_envelope_lux
+from atr import atr_stop_loss
+from nw_new import *
 
 def calculate_intelligent_position(df):
     try:
@@ -99,6 +102,39 @@ def boll_kc_handel(df):
         side = 'HOLD'
     return side
 
+def nw_rsi_atr(price_data):
+    df = price_data['full_data']
+    global take_profit, stop_loss
+    close = df['close']
+    price_close=df['close'].iloc[-1]
+    price_high = df['high'].iloc[-1]
+    price_low = df['low'].iloc[-1]
+    nw = nwe_repaint_on_last(close, h=8, mult=3, window=window)
+    atr = atr_stop_loss(df,14,0.5)
+    rsi = df['rsi'].iloc[-1]
+    reason = 'nw触发'
+    if price_high > nw['upper'].iloc[-1] > price_close and rsi>70 and price_close< nw['mid'].iloc[-1]:
+        signal = 'SELL'
+        stop_loss = df['close'].iloc[-1] + atr
+        take_profit = df['upper'].iloc[-1] -nw['mae']
+    if price_low <= nw['lower'].iloc[-1] < price_close and rsi < 30 and price_close> nw['mid'].iloc[-1]:
+        signal = 'BUY'
+        stop_loss = df['close'].iloc[-1] - atr
+        take_profit = df['lower'].iloc[-1] +nw['mae']
+    if signal =='SELL' and nw['upper'].iloc[-1]<nw['upper'].iloc[-2]:
+        take_profit = df['upper'].iloc[-1] - nw['mae']*2
+    if signal == 'BUY' and nw['upper'].iloc[-1] < nw['upper'].iloc[-2]:
+        take_profit = df['lower'].iloc[-1] + nw['mae']*2
+
+    return {
+        'signal':signal,
+        'reason':reason,
+        "stop_loss": stop_loss ,
+        "take_profit": take_profit,
+        "confidence": 'High',
+        "is_fallback": True
+    }
+
 
 
 
@@ -133,25 +169,25 @@ def main():
    # dfftym['timestamp'] = pd.to_datetime(dfftym['timestamp'], unit='ms')
     #5min数据
     df = calculate_technical_indicators(dffm)
-    boll_kc_handel(df)
-    # 创建一个示例数据集
-    # 计算布林肯特纳指标
-    res = ttm_squeeze(df)
-    # 绘制数据和布林肯特纳带
-    plt.figure(figsize=(10, 5))
-    plt.plot(df['timestamp'], df['close'], label='Close Price')
-    plt.plot(df['timestamp'], res['BB_Mid'], label='BB Middle Band', color='blue')
-    plt.plot(df['timestamp'], res['BB_Up'], label='BB Upper Band', color='red')
-    plt.plot(df['timestamp'], res['BB_Low'], label='BB Lower Band', color='green')
-    plt.plot(df['timestamp'], res['KC_Up'], label='KC Up Band', color='purple')
-    plt.plot(df['timestamp'], res['KC_Low'], label='KC Low Band', color='brown')
-    plt.fill_between(df['timestamp'], res['BB_Up'], res['BB_Low'], color='yellow', alpha=0.3)
-    plt.title('Bollinger Bands')
-    plt.xlabel('timestamp')
-    plt.ylabel('price')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    nw_rsi_atr(df)
+
+    # create example price series
+    import matplotlib.pyplot as plt
+    price = df['close']
+    s = pd.Series(price)
+
+    # parameters (Pine defaults from your script: h=8, mult=3, window=500 (0..499))
+    h = 8.0
+    mult = 3.0
+    window = 200   # << for demo speed reduce from 500 to 200; set to 500 to fully match script
+
+    # repaint-on-last (only last L points populated)
+    res_rl = nwe_repaint_on_last(s, h=h, mult=mult, window=window)
+    sig_rl = generate_signals(s, res_rl)
+    print("Repaint-on-last signals (sample):", sig_rl[sig_rl != 0].to_dict())
+    plot_nwe(s, res_rl, sig_rl, title='NWE (repaint-on-last)')
+
+
 
 if __name__ == "__main__":
     main()
