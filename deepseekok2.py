@@ -248,7 +248,7 @@ def calculate_intelligent_position(signal_data, price_data, current_position):
 
 def nw_rsi_atr(price_data):
     df = price_data['full_data']
-    global take_profit, stop_loss
+    global take_profit, stop_loss, signal
     close = df['close']
     price_close=df['close'].iloc[-1]
     price_high = df['high'].iloc[-1]
@@ -258,20 +258,23 @@ def nw_rsi_atr(price_data):
     rsi = df['rsi'].iloc[-1]
     rsilast = df['rsi'].iloc[-2]
     reason = 'nw触发'
-    if price_high > nw['upper'].iloc[-1] > price_close and (rsi>=60 or rsilast>=60) and price_close> nw['mid'].iloc[-1]:
+    if price_high > nw['upper'].iloc[-1] > price_close > nw['mid'].iloc[-1] and (rsi >= 60 or rsilast >= 60):
         signal = 'SELL'
         stop_loss = df['close'].iloc[-1] + atr
-        take_profit = df['upper'].iloc[-1] -nw['mae']
-    if price_low <= nw['lower'].iloc[-1] < price_close and (rsi <= 40 or rsilast<=40) and price_close< nw['mid'].iloc[-1]:
+        if nw['upper'].iloc[-1]<nw['upper'].iloc[-2]:
+            take_profit = df['upper'].iloc[-1] - nw['mae'] * 2
+        else:
+            take_profit = df['upper'].iloc[-1] -nw['mae']
+    if price_low <= nw['lower'].iloc[-1] < price_close < nw['mid'].iloc[-1] and (rsi <= 40 or rsilast <= 40):
         signal = 'BUY'
         stop_loss = df['close'].iloc[-1] - atr
-        take_profit = df['lower'].iloc[-1] + nw['mae'] * 0.8
-        if rsi<=30:
+        if nw['upper'].iloc[-1] < nw['upper'].iloc[-2]:
+            take_profit = df['lower'].iloc[-1] + nw['mae'] * 2
+        elif rsi<=30:
             take_profit = df['lower'].iloc[-1] + nw['mae']
-    if signal =='SELL' and nw['upper'].iloc[-1]<nw['upper'].iloc[-2]:
-        take_profit = df['upper'].iloc[-1] - nw['mae']*2
-    if signal == 'BUY' and nw['upper'].iloc[-1] < nw['upper'].iloc[-2]:
-        take_profit = df['lower'].iloc[-1] + nw['mae']*2
+        else:
+            take_profit = df['lower'].iloc[-1] + nw['mae'] * 0.8
+
 
     return {
         'signal':signal,
