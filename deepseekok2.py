@@ -266,8 +266,10 @@ def nw_rsi_atr(price_data):
         stop_loss = df['close'].iloc[-1] + atr['atr']
         if nw['upper'].iloc[-1]<nw['upper'].iloc[-2]:
             take_profit = nw['upper'].iloc[-1] - nw['mae'] * 2
-        else:
+        elif rsi >= 60:
             take_profit = nw['upper'].iloc[-1] -nw['mae']
+        else :
+            take_profit = nw['upper'].iloc[-1] - nw['mae']*0.5
     if price_low <= nw['lower'].iloc[-1] < price_close < nw['mid'].iloc[-1] and (rsi <= 40 or rsi_last <= 40):
         signal_side = 'BUY'
         stop_loss = df['close'].iloc[-1] - atr['atr']
@@ -276,7 +278,7 @@ def nw_rsi_atr(price_data):
         elif rsi<=30:
             take_profit = nw['low'].iloc[-1] + nw['mae']
         else:
-            take_profit = nw['low'].iloc[-1] + nw['mae'] * 0.8
+            take_profit = nw['low'].iloc[-1] + nw['mae'] * 0.5
 
 
     return {
