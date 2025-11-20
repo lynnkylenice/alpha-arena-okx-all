@@ -11,7 +11,9 @@ import requests
 from datetime import datetime, timedelta
 from data_manager import update_system_status, save_trade_record
 from ttm_strategy import ttm_squeeze
-from strategy import nw_rsi_atr
+from atr import atr_stop_loss
+from nw_new import *
+
 load_dotenv()
 
 # 初始化DeepSeek客户端
@@ -242,6 +244,43 @@ def calculate_intelligent_position(signal_data, price_data, current_position):
         contract_size = (base_usdt * TRADE_CONFIG['leverage']) / (
                     price_data['price'] * TRADE_CONFIG.get('contract_size', 0.01))
         return round(max(contract_size, TRADE_CONFIG.get('min_amount', 0.01)), 2)
+
+
+def nw_rsi_atr(price_data):
+    df = price_data['full_data']
+    global take_profit, stop_loss
+    close = df['close']
+    price_close=df['close'].iloc[-1]
+    price_high = df['high'].iloc[-1]
+    price_low = df['low'].iloc[-1]
+    nw = nwe_repaint_on_last(close, h=8, mult=3)
+    atr = atr_stop_loss(df,14,0.5)
+    rsi = df['rsi'].iloc[-1]
+    rsilast = df['rsi'].iloc[-2]
+    reason = 'nw触发'
+    if price_high > nw['upper'].iloc[-1] > price_close and (rsi>=60 or rsilast>=60) and price_close> nw['mid'].iloc[-1]:
+        signal = 'SELL'
+        stop_loss = df['close'].iloc[-1] + atr
+        take_profit = df['upper'].iloc[-1] -nw['mae']
+    if price_low <= nw['lower'].iloc[-1] < price_close and (rsi <= 40 or rsilast<=40) and price_close< nw['mid'].iloc[-1]:
+        signal = 'BUY'
+        stop_loss = df['close'].iloc[-1] - atr
+        take_profit = df['lower'].iloc[-1] + nw['mae'] * 0.8
+        if rsi<=30:
+            take_profit = df['lower'].iloc[-1] + nw['mae']
+    if signal =='SELL' and nw['upper'].iloc[-1]<nw['upper'].iloc[-2]:
+        take_profit = df['upper'].iloc[-1] - nw['mae']*2
+    if signal == 'BUY' and nw['upper'].iloc[-1] < nw['upper'].iloc[-2]:
+        take_profit = df['lower'].iloc[-1] + nw['mae']*2
+
+    return {
+        'signal':signal,
+        'reason':reason,
+        "stop_loss": stop_loss ,
+        "take_profit": take_profit,
+        "confidence": 'High',
+        "is_fallback": True
+    }
 
 
 def calculate_technical_indicators(df):
