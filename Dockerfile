@@ -26,10 +26,7 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
 # 复制项目文件
-COPY run.py .
-COPY deepseekok2.py .
-COPY data_manager.py .
-COPY streamlit_app.py .
+COPY *.py .
 COPY .streamlit/ .streamlit/
 
 # 创建数据目录
