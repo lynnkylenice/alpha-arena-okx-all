@@ -102,44 +102,6 @@ def boll_kc_handel(df):
         side = 'HOLD'
     return side
 
-def nw_rsi_atr(df):
-
-    global take_profit, stop_loss
-    close = df['close']
-    price_close=df['close'].iloc[-1]
-    price_high = df['high'].iloc[-1]
-    price_low = df['low'].iloc[-1]
-    nw = nwe_repaint_on_last(close, h=8, mult=3)
-    atr = atr_stop_loss(df,14,0.5)
-    rsi = df['rsi'].iloc[-1]
-    rsilast = df['rsi'].iloc[-2]
-    reason = 'nw触发'
-    if price_high > nw['upper'].iloc[-1] > price_close > nw['mid'].iloc[-1] and (rsi >= 60 or rsilast >= 60):
-        signal = 'SELL'
-        stop_loss = df['close'].iloc[-1] + atr
-        take_profit = df['upper'].iloc[-1] -nw['mae']
-    if price_low <= nw['lower'].iloc[-1] < price_close < nw['mid'].iloc[-1] and (rsi <= 40 or rsilast <= 40):
-        signal = 'BUY'
-        stop_loss = df['close'].iloc[-1] - atr
-        take_profit = df['lower'].iloc[-1] + nw['mae'] * 0.8
-        if rsi<=30:
-            take_profit = df['lower'].iloc[-1] + nw['mae']
-    if signal =='SELL' and nw['upper'].iloc[-1]<nw['upper'].iloc[-2]:
-        take_profit = df['upper'].iloc[-1] - nw['mae']*2
-    if signal == 'BUY' and nw['upper'].iloc[-1] < nw['upper'].iloc[-2]:
-        take_profit = df['lower'].iloc[-1] + nw['mae']*2
-
-    return {
-        'signal':signal,
-        'reason':reason,
-        "stop_loss": stop_loss ,
-        "take_profit": take_profit,
-        "confidence": 'High',
-        "is_fallback": True
-    }
-
-
-
 
 def main():
     print("BTC/USDT OKX自动交易机器人策略启动成功！")
