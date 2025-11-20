@@ -260,23 +260,23 @@ def nw_rsi_atr(price_data):
     rsi_last = df['rsi'].iloc[-2]
     reason = 'nw触发'
     stop_loss = df['close'].iloc[-1]
-    take_profit = df['lower'].iloc[-1]
+    take_profit = df['low'].iloc[-1]
     if price_high > nw['upper'].iloc[-1] > price_close > nw['mid'].iloc[-1] and (rsi >= 60 or rsi_last >= 60):
         signal_side = 'SELL'
         stop_loss = df['close'].iloc[-1] + atr['atr']
         if nw['upper'].iloc[-1]<nw['upper'].iloc[-2]:
-            take_profit = df['upper'].iloc[-1] - nw['mae'] * 2
+            take_profit = nw['upper'].iloc[-1] - nw['mae'] * 2
         else:
-            take_profit = df['upper'].iloc[-1] -nw['mae']
+            take_profit = nw['upper'].iloc[-1] -nw['mae']
     if price_low <= nw['lower'].iloc[-1] < price_close < nw['mid'].iloc[-1] and (rsi <= 40 or rsi_last <= 40):
         signal_side = 'BUY'
         stop_loss = df['close'].iloc[-1] - atr['atr']
         if nw['upper'].iloc[-1] < nw['upper'].iloc[-2]:
-            take_profit = df['lower'].iloc[-1] + nw['mae'] * 2
+            take_profit = nw['low'].iloc[-1] + nw['mae'] * 2
         elif rsi<=30:
-            take_profit = df['lower'].iloc[-1] + nw['mae']
+            take_profit = nw['low'].iloc[-1] + nw['mae']
         else:
-            take_profit = df['lower'].iloc[-1] + nw['mae'] * 0.8
+            take_profit = nw['low'].iloc[-1] + nw['mae'] * 0.8
 
 
     return {
