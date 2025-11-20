@@ -266,7 +266,7 @@ def nw_rsi_atr(price_data):
         stop_loss = df['close'].iloc[-1] + atr['atr']
         if nw['upper'].iloc[-1]<nw['upper'].iloc[-2]:
             take_profit = nw['upper'].iloc[-1] - nw['mae'] * 2
-        elif rsi >= 60:
+        elif rsi >= 70:
             take_profit = nw['upper'].iloc[-1] -nw['mae']
         else :
             take_profit = nw['upper'].iloc[-1] - nw['mae']*0.5
