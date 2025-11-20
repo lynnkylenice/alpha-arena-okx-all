@@ -7,3 +7,6 @@ requests
 urllib3
 streamlit
 plotly
+numpy
+scipy
+matplotlib
