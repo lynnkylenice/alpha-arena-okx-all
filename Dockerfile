@@ -27,6 +27,17 @@ RUN pip install --upgrade pip && \
 
 # 复制项目文件
 COPY *.py .
+COPY run.py .
+COPY deepseekok2.py .
+COPY data_manager.py .
+COPY streamlit_app.py .
+COPY ttm_strategy.py .
+COPY nw.py .
+COPY atr.py .
+COPY order.py .
+COPY nw_new.py .
+COPY kdj_strategy.py .
+COPY strategy.py .
 COPY .streamlit/ .streamlit/
 
 # 创建数据目录
